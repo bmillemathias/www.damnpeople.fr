@@ -1,0 +1,110 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"> 
+    <head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<title>Monitoring of Cherokee Web Server using collectd</title>
+
+	<link rel="stylesheet" href="../../site.css" type="text/css" media="screen" charset="utf-8" /> 
+	<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script>
+	<script type='text/javascript' src='../../script.js'></script>
+	<script type="text/javascript"> 
+ 
+	var _gaq = _gaq || [];
+	_gaq.push(['_setAccount', 'UA-81320-2']);
+	_gaq.push(['_trackPageview']);
+ 
+	(function() {
+	    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+	    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+	    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+	})();
+ 
+    	</script>
+    </head>
+    <body>
+	<div id="container">
+	    <h1>Monitoring of Cherokee Web Server using collectd</h1>
+
+	    <div style="font-style:italic">This article is still a work-in-progress, In case you need more information, don't hesitate to contact me.</div>
+
+	    <p><a href="http://www.cherokee-project.org">Cherokee</a> is a lightweight web server 
+	    which replace perfectly apache; its memory footprint is small, and it is 
+	    resistant to attacks like slowloris where apache needs specific modules and additionnal setup.<br/>
+	    Cherokee is also easy to configure with its web interface for the
+	    administration. This is on what runs this site.</p>
+
+	    <p><a href="http://www.collectd.org">Collectd</a> is a small daemon which collects 
+	    system information, it comes with various plugins, to parse infomation from various
+	    sources, for df, apache, memory, /procs, …</p>
+
+            <p>The problem is collectd doesn't provide a plugin to monitor directly cherokee 
+            activity, althought starting with version 4.8 it is possible to monitor it using the 
+            plugin <a href="http://collectd.org/wiki/index.php/Plugin:cURL-JSON">curl_json</a> 
+	    as cherokee exposes its statistics in a json format file (or other easy to parse formats).</p>
+
+            <h2>Set up the server info handler in Cherokee</h2>
+
+            <p>I use cherokee 1.0.8 currently so my steps are based on this version, I guess your version will be more or less the same.</p>
+
+            <p>Launch the web administration interface, go in the "vServers" section.<br/>
+            Open the default vserver, add a new behaviour based on directory, we'll use "/about" for Web directory).<br/>
+            Set for this directory a "server info" handler, choose "Server Information + Connections" for privacy settings.
+            </p>
+            <p>To test the server information page is available you can run the command
+            <pre><code>wget http://servername.tld/about/info/js</code></pre>.
+            </p>
+
+            <h2>Set up curl_json's Collectd plugin to monitor Cherokee</h2>
+
+	    <p>First we edit the file <code>/etc/collectd/collectd.conf</code></p>
+            <p>We enable the json_curl plugin
+                <pre><code>    LoadPlugin curl_json</code></pre>
+            Then we set up the monitoring
+            <pre><code>    &lt;Plugin curl_json&gt;
+      &lt;URL "http://localhost/about/info/js"&gt;
+      Instance "cherokee"
+
+        &lt;Key "traffic/tx"&gt;
+        Type "httpd_bytes"
+        &lt;/Key&gt;
+
+        &lt;Key "traffic/rx"&gt;
+          Type "httpd_bytes"
+        &lt;/Key&gt;
+
+        &lt;Key "connections/number"&gt;
+            Type "httpd_connections"
+        &lt;/Key&gt;
+
+        &lt;Key "iocache/hits"&gt;
+      	    Type "percent"
+    	&lt;/Key&gt;
+
+    &lt;/Plugin&gt;</code></pre>
+            We define an <code>URL</code> to use, in my case the collectd and cherokee servers are on the same server; then we gave an instance name.
+            With the <code>Key</code> markup we match the path to the value from the root node of the JSON file to the leaf; <code>Type</code> gives the value expected (more about the type later).
+	    </p>
+            <p>
+                We need to create a file that will store our custom counter types (as defined previously).<br/>
+                Create a file <code>/etc/collectd/types.db.custom</code> and put this content:
+                <pre><code>    httpd_bytes             count:COUNTER:0:134217728
+    httpd_connections       count:GAUGE:0:65535
+    httpd_requests          count:COUNTER:0:134217728</code></pre>
+		We defined three custom counters, one for the http traffic, one for the number of connections and one for the requests.
+		To have more information on type, you can have a look to <a href="http://collectd.org/documentation/manpages/types.db.5.shtml">the online documentation</a>.
+	    </p>
+	    <p>
+            Finally modify the configuration file <code>/etc/collectd/collectd.conf</code>;<br/>
+            Add at the beginning
+            <pre><code>    TypesDB "/usr/share/collectd/types.db" "/etc/collectd/types.db.custom"</code></pre>
+            to our custom <code>types.db</code>; you can see we need to add also the standard types.db file else nothing won't work.<br/>
+                Restart the collectd server to take the new monitoring in account.<br/>
+	    </p>
+	    <p>
+		If you have a web front-end like Collection3 you should get something like <img style="text-align:center" src="/images/json_curl_iocache.png" />.
+            </p>
+	</div>
+    </body>
+</html>

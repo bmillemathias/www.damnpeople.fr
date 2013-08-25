@@ -1,0 +1,4 @@
+- / (web activities)
+    - /about/
+        - /resume/
+    - /contact/

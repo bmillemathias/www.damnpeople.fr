@@ -1,0 +1,56 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en"> 
+    <head>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<title>Set up of git server with a web front end</title>
+
+	<link rel="stylesheet" href="../../site.css" type="text/css" media="screen" charset="utf-8" /> 
+        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script>
+        <script type='text/javascript' src='../../script.js'></script>
+	<script type="text/javascript"> 
+ 
+	var _gaq = _gaq || [];
+	_gaq.push(['_setAccount', 'UA-81320-2']);
+	_gaq.push(['_trackPageview']);
+ 
+	(function() {
+	    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+	    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+	    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+	})();
+ 
+    	</script>
+    </head>
+    <body>
+	<div id="container">
+	    <h1>Monitoring of Cherokee Web Server using collectd</h1>
+	    <p><a href="http://www.cherokee-project.org">Cherokee</a> is a lightweight web server 
+	    which replace perfectly apache; its memory footprint is also small, and it is 
+	    resistant to attacks like slowloris where apache needed specific modules.<br/>
+	    Cherokee is also easy to configuration with its web interface for the
+	    administration. This is on what runs this site.</p>
+
+	    <p><a href="http://www.collectd.org">Collectd</a> is a small daemon which collects 
+	    system information, it comes with various plugins, to parse infomation from various
+	    sources, for df, apache, memory, /procs, …</p>
+
+	    <p>Collectd doesn't provide a plugin to monitor cherokee activity, althought it is
+	    possible to monitor it using the plugin curl_json as cherokee expose its statistics in a
+	    json format file.</p>
+
+	    <p>First we edit the file /etc/collectd/collectd.conf</p>
+	    <p>
+	    <code>
+	    LoadPlugin json_curl
+	    …
+	    &lt;Plugin json_curl&gt;
+		Instance "cherokee"
+		&lt;URL "http://127.0.0.1/about/info/js"&gt;
+	    &lt;/Plugin&gt;
+	    </code>
+	    </p>
+	</div>
+    </body>
+</html>
